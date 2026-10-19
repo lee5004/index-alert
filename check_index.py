@@ -114,9 +114,11 @@ def main():
                 s["up"] = sorted(set(s["up"]) | set(new_up))
 
         state[ticker] = s
+    
+        mark = "🔴" if dd <= -20 else "🟡" if dd <= -10 else "🟢"
         report.append(
-            f"{name}  전고점 {dd:+.2f}% · 저점 대비 {rebound:+.2f}%\n"
-            f"  현재 {price:,.2f} / 고점 {high:,.2f} / 저점 {low:,.2f}"
+            f"{mark} {name}  {price:,.0f}\n"
+            f"     전고점 {dd:+.1f}% · 저점 {rebound:+.1f}%"
         )
         print(f"[{name}] 현재 {price:,.2f} / 전고점 {dd:.2f}% / 반등 {rebound:.2f}%")
 

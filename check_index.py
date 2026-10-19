@@ -1,7 +1,4 @@
-        send(
-            "📊 지수 현황\n\n" + "\n\n".join(report)
-            + "\n\n🟢 -10% 이내  🟡 -10~20%  🔴 -20% 이하"
-        )import json
+import json
 import os
 from pathlib import Path
 
@@ -17,7 +14,7 @@ INDEXES = {
 }
 LEVELS = [10, 20, 30, 40, 50]   # 전고점 대비 하락 알림 단계(%)
 REARM_GAP = 5                   # 단계보다 이만큼(%p) 회복하면 그 단계 다시 알림 가능
-UP_LEVELS = [5, 10, 15, 20, 25, 30, 40, 50]       # 저점 대비 반등 알림 단계(%)
+UP_LEVELS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]  # 저점 대비 반등 알림 단계(%)
 LOOKBACK = "max"                # 역대 전고점 기준
 # ================
 
@@ -77,7 +74,7 @@ def main():
             "up": old.get("up", []),
         }
 
-        # 3. 신고점: 10% 이상 하락했던 사이클이 끝났을 때만 알림
+        # 신고점: 10% 이상 하락했던 사이클이 끝났을 때만 알림
         if high > s["high"] + 0.01:
             if s["high"] > 0 and s["down"]:
                 send(
@@ -92,7 +89,7 @@ def main():
             s["low"] = low
             s["up"] = []
 
-        # 1. 재알림: 단계보다 REARM_GAP 이상 회복하면 그 단계 초기화
+        # 재알림: 단계보다 REARM_GAP 이상 회복하면 그 단계 초기화
         s["down"] = [lv for lv in s["down"] if dd <= -(lv - REARM_GAP)]
 
         new_down = [lv for lv in LEVELS if dd <= -lv and lv not in s["down"]]
@@ -104,7 +101,7 @@ def main():
             )
             s["down"] = sorted(set(s["down"]) | set(new_down))
 
-        # 2. 저점 대비 반등: 10% 이상 하락한 적이 있을 때만
+        # 저점 대비 반등: 10% 이상 하락한 적이 있을 때만
         if max_dd <= -LEVELS[0]:
             new_up = [lv for lv in UP_LEVELS if rebound >= lv and lv not in s["up"]]
             if new_up:
@@ -117,7 +114,6 @@ def main():
                 s["up"] = sorted(set(s["up"]) | set(new_up))
 
         state[ticker] = s
-    
         mark = "🔴" if dd <= -20 else "🟡" if dd <= -10 else "🟢"
         report.append(
             f"{mark} {name}  {price:,.0f}\n"

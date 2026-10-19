@@ -1,4 +1,7 @@
-import json
+        send(
+            "📊 지수 현황\n\n" + "\n\n".join(report)
+            + "\n\n🟢 -10% 이내  🟡 -10~20%  🔴 -20% 이하"
+        )import json
 import os
 from pathlib import Path
 
@@ -123,7 +126,10 @@ def main():
         print(f"[{name}] 현재 {price:,.2f} / 전고점 {dd:.2f}% / 반등 {rebound:.2f}%")
 
     if MANUAL:
-        send("📊 지수 현황\n\n" + "\n\n".join(report))
+        send(
+            "📊 지수 현황\n\n" + "\n\n".join(report)
+            + "\n\n🟢 -10% 이내  🟡 -10~20%  🔴 -20% 이하"
+        )
 
     STATE_FILE.write_text(json.dumps(state, ensure_ascii=False, indent=2), encoding="utf-8")
 

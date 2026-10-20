@@ -16,6 +16,8 @@ LEVELS = [10, 20, 30, 40, 50]   # 전고점 대비 하락 알림 단계(%)
 REARM_GAP = 5                   # 단계보다 이만큼(%p) 회복하면 그 단계 다시 알림 가능
 UP_LEVELS = [5, 10, 15, 20, 25, 30, 35, 40, 45, 50]  # 저점 대비 반등 알림 단계(%)
 LOOKBACK = "max"                # 역대 전고점 기준
+VIX_LEVELS = [30, 40]           # 공포지수(VIX) 알림 단계
+VIX_REARM = 5                   # 단계보다 이만큼 내려가면 다시 알림 가능
 # ================
 
 TOKEN = os.environ["TELEGRAM_TOKEN"]
@@ -37,6 +39,37 @@ def load_state():
     if STATE_FILE.exists():
         return json.loads(STATE_FILE.read_text(encoding="utf-8"))
     return {}
+
+
+def check_vix(state):
+    try:
+        hist = yf.Ticker("^VIX").history(period="5d")
+    except Exception as e:
+        print(f"[VIX] 조회 실패: {e}")
+        return "VIX: 조회 실패"
+    if hist.empty:
+        return "VIX: 데이터 없음"
+
+    vix = float(hist["Close"].iloc[-1])
+    if vix < 20:
+        icon, mood = "😌", "평온"
+    elif vix < 30:
+        icon, mood = "😟", "불안"
+    elif vix < 40:
+        icon, mood = "😨", "공포"
+    else:
+        icon, mood = "😱", "극심한 공포"
+
+    s = state.get("^VIX", {"alerted": []})
+    s["alerted"] = [lv for lv in s["alerted"] if vix >= lv - VIX_REARM]
+    new = [lv for lv in VIX_LEVELS if vix >= lv and lv not in s["alerted"]]
+    if new:
+        send(f"{icon} 공포지수(VIX) {max(new)} 돌파\n현재 {vix:.1f} ({mood})")
+        s["alerted"] = sorted(set(s["alerted"]) | set(new))
+    state["^VIX"] = s
+
+    print(f"[VIX] {vix:.1f} ({mood})")
+    return f"{icon} 공포지수(VIX)  {vix:.1f}\n     {mood}"
 
 
 def main():
@@ -121,9 +154,12 @@ def main():
         )
         print(f"[{name}] 현재 {price:,.2f} / 전고점 {dd:.2f}% / 반등 {rebound:.2f}%")
 
+    vix_line = check_vix(state)
+
     if MANUAL:
         send(
             "📊 지수 현황\n\n" + "\n\n".join(report)
+            + "\n\n" + vix_line
             + "\n\n🟢 -10% 이내  🟡 -10~20%  🔴 -20% 이하"
         )
 
